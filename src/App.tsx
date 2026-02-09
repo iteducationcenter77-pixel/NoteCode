@@ -154,7 +154,19 @@ function App() {
       const directUrl = 'https://github.com/iteducationcenter77-pixel/NoteCode/releases/latest/download/NoteCode-Setup.exe'
       const releasesUrl = 'https://github.com/iteducationcenter77-pixel/NoteCode/releases/latest'
       const targetUrl = isWindows ? directUrl : releasesUrl
-      window.open(targetUrl, '_blank', 'noopener,noreferrer')
+      if (isWindows) {
+        // Trigger a direct download via an invisible anchor
+        const a = document.createElement('a')
+        a.href = targetUrl
+        a.setAttribute('download', 'NoteCode-Setup.exe')
+        a.style.display = 'none'
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+      } else {
+        // Non-Windows: open releases page
+        window.open(targetUrl, '_blank', 'noopener,noreferrer')
+      }
     } catch {
       window.open('https://github.com/iteducationcenter77-pixel/NoteCode/releases/latest', '_blank', 'noopener,noreferrer')
     }
