@@ -440,7 +440,7 @@ function App() {
     setActiveTab('console')
     setLogs([])
     const api = (window as any).api
-    if (api) {
+    if (api && typeof api.startRun === 'function') {
       try {
         // Start interactive run and subscribe to output
         const res = await api.startRun({ language, source: doc })
@@ -499,6 +499,7 @@ function App() {
         api.sendInput({ sessionId: runSessionId, data: val + '\r\n' }).catch(() => {})
       }
       if (inputEl) inputEl.value = ''
+      setStdinInput('')
     } catch (_) {
       // ignore
     }
@@ -549,15 +550,20 @@ function App() {
                 <iframe ref={iframeRef} className="preview-frame" />
               ) : (
                 <div className="console">
-                  {isRunning && (
+                  {((isRunning) || (!isElectronEnv() && (language === 'java' || language === 'c' || language === 'cpp'))) && (
                     <div className="stdin-input">
-                      <label>Type input and press Enter:</label>
+                      <label>{isRunning ? 'Type input and press Enter:' : 'Program input (stdin):'}</label>
                       <input
                         className="input"
-                        placeholder="e.g. 5 7"
+                        placeholder={isRunning ? 'e.g. 5 7' : 'Provide input for scanf/cin/System.in here'}
                         onKeyDown={onConsoleEnter}
+                        value={stdinInput}
+                        onChange={e => setStdinInput(e.target.value)}
                         autoFocus
                       />
+                      {!isRunning && (
+                        <div className="hint">This input is sent once per run in the web mode.</div>
+                      )}
                     </div>
                   )}
                   {logs.length === 0 ? <div className="log">No output yet.</div> : logs.map((l, i) => (
