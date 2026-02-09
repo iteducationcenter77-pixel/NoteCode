@@ -480,7 +480,13 @@ function App() {
         const res = await runWebCompile(language as any, doc, stdinInput)
         if (res.stderr) appendLog('error', res.stderr)
         if (res.stdout) appendLog('log', res.stdout)
-        if (!res.stdout && !res.stderr) appendLog('warn', 'No output. If issues persist, use the NoteCode desktop app for full compiler support.')
+        if (!res.stdout && !res.stderr) {
+          const expectsInput = /scanf\s*\(|\bcin\b|System\.in/.test(doc)
+          const guidance = expectsInput
+            ? 'Program may be waiting for input. Enter values in the input box (use newlines), then click Run.'
+            : 'No output. If issues persist, use the NoteCode desktop app for full compiler support.'
+          appendLog('warn', guidance)
+        }
       }
     }
   }
