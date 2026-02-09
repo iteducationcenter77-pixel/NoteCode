@@ -561,9 +561,7 @@ function App() {
                         onChange={e => setStdinInput(e.target.value)}
                         autoFocus
                       />
-                      {!isRunning && (
-                        <div className="hint">This input is sent once per run in the web mode.</div>
-                      )}
+                      {/* hint removed per user request */}
                     </div>
                   )}
                   {logs.length === 0 ? <div className="log">No output yet.</div> : logs.map((l, i) => (
