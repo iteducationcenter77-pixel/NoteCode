@@ -33,8 +33,11 @@ jobs:
 
       - name: Verify installer exists
         run: |
-          if (!(Test-Path "dist-electron/NoteCode-Setup.exe")) {
-            Write-Error "Installer not found: dist-electron/NoteCode-Setup.exe"
+          $file = Get-ChildItem -Path "dist-electron" -Filter "NoteCode-*-Setup.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $file) {
+            Write-Error "Installer not found: dist-electron/NoteCode-*-Setup.exe"
+          } else {
+            Write-Host "Found installer: $($file.FullName)"
           }
 
       - name: Create GitHub Release and upload asset
@@ -42,7 +45,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            dist-electron/NoteCode-Setup.exe
+            dist-electron/NoteCode-*-Setup.exe
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
