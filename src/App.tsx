@@ -150,8 +150,20 @@ function App() {
 
   async function runWebCompile(lang: 'java' | 'c' | 'cpp', source: string, stdin: string) {
     try {
-      const endpoint = 'https://emkc.org/api/v2/piston/execute'
-      let language = lang === 'cpp' ? 'cpp' : (lang === 'c' ? 'c' : 'java')
+      const runtimesUrl = 'https://emkc.org/api/v2/piston/runtimes'
+      const execUrl = 'https://emkc.org/api/v2/piston/execute'
+      const pistonLang = lang === 'cpp' ? 'c++' : (lang === 'c' ? 'c' : 'java')
+      let version = 'latest'
+      try {
+        const rtResp = await fetch(runtimesUrl, { headers: { 'Accept': 'application/json' } })
+        if (rtResp.ok) {
+          const rts = await rtResp.json()
+          const match = (Array.isArray(rts) ? rts : []).find((r: any) => String(r?.language || '').toLowerCase() === pistonLang)
+          if (match && match.version) version = String(match.version)
+        }
+      } catch (_) {
+        // ignore, fallback to 'latest'
+      }
       const files = [
         {
           name: lang === 'java' ? 'Main.java' : (lang === 'cpp' ? 'main.cpp' : 'main.c'),
@@ -159,18 +171,22 @@ function App() {
         }
       ]
       const body = {
-        language,
-        version: 'latest',
+        language: pistonLang,
+        version,
         files,
         stdin: stdin || ''
       }
-      const resp = await fetch(endpoint, {
+      const resp = await fetch(execUrl, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
         body: JSON.stringify(body)
       })
+      if (!resp.ok) {
+        return { stdout: '', stderr: 'Web run failed (HTTP ' + resp.status + '). Please try again or use the desktop app.', exitCode: resp.status }
+      }
       const json = await resp.json()
       let out = ''
       let err = ''
@@ -181,7 +197,7 @@ function App() {
       const exitCode = typeof json?.run?.code === 'number' ? json.run.code : 0
       return { stdout: out, stderr: err, exitCode }
     } catch (e: any) {
-      return { stdout: '', stderr: String(e?.message || e), exitCode: -1 }
+      return { stdout: '', stderr: 'Network error: ' + String(e?.message || e), exitCode: -1 }
     }
   }
 
