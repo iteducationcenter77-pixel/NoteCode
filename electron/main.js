@@ -82,6 +82,7 @@ function checkServer(url, timeoutMs = 1500) {
 // Portable tools installation (JDK + GCC/WinLibs)
 const toolsBaseDir = path.join(process.env.LOCALAPPDATA || (app.getPath ? app.getPath('localAppData') : '') || nodeOs.tmpdir(), 'NoteCodeTools')
 const downloadsDir = path.join(toolsBaseDir, 'downloads')
+const embeddedToolsDir = path.join(process.resourcesPath || path.join(__dirname, '..'), 'tools')
 
 async function ensureDir(p) {
   try { await fs.mkdir(p, { recursive: true }) } catch {}
@@ -214,6 +215,26 @@ async function ensureWinLibsGcc() {
     try { await fs.unlink(zipPath) } catch {}
     const gcc = await findInDir(gccDir, ['gcc.exe'])
     if (gcc) return path.dirname(gcc)
+  } catch {}
+  return ''
+}
+async function findEmbeddedToolBin(tool) {
+  try {
+    if (process.platform !== 'win32') return ''
+    // Search inside embedded resources
+    if (tool === 'javac' || tool === 'java') {
+      const found = await findInDir(embeddedToolsDir, [`${tool}.exe`])
+      if (found) return found
+      const jdkRoot = path.join(embeddedToolsDir, 'jdk')
+      const javac = await findInDir(jdkRoot, [`${tool}.exe`])
+      if (javac) return javac
+    }
+    if (tool === 'gcc' || tool === 'g++') {
+      const gppName = tool === 'g++' ? 'g++.exe' : 'gcc.exe'
+      const winlibsRoot = path.join(embeddedToolsDir, 'winlibs')
+      const gcc = await findInDir(winlibsRoot, [gppName])
+      if (gcc) return gcc
+    }
   } catch {}
   return ''
 }
@@ -369,6 +390,9 @@ async function resolveToolPath(tool) {
     const p = await locateTool(tool)
     if (p) return p.split(/\r?\n/)[0]
   }
+  // Prefer embedded portable tools bundled with the app
+  const embedded = await findEmbeddedToolBin(tool)
+  if (embedded) return embedded
   // Check embedded tools installed by the app
   if (process.platform === 'win32') {
     try {
@@ -470,6 +494,8 @@ function augmentWinPath(primaryBin) {
     path.join(embeddedGccBase, 'mingw64', 'bin'),
     embeddedGccBase
   ]
+  const bundledJdk = path.join(embeddedToolsDir)
+  const bundledGcc = path.join(embeddedToolsDir, 'winlibs')
   const extraBins = [
     path.dirname(primaryBin || ''),
     path.join(home, 'scoop', 'shims'),
@@ -483,6 +509,10 @@ function augmentWinPath(primaryBin) {
     // Embedded portable tools (if present)
     path.join(embeddedJdkBin),
     ...embeddedGccBinCandidates
+    // Bundled tools inside app resources
+    path.join(bundledJdk),
+    path.join(bundledGcc),
+    path.join(bundledGcc, 'mingw64', 'bin'),
   ]
   const existing = (process.env.PATH || '').split(';')
   const merged = [...extraBins, ...existing].filter(Boolean)

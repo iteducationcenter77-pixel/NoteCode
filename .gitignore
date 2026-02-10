@@ -5,6 +5,9 @@ dist-electron/**
 !dist-electron/builder-effective-config.yaml
 !dist-electron/builder-debug.yml
 
+# Bundled tools fetched during packaging (not committed)
+tools/
+
 # Electron unpacked outputs
 win-unpacked/
 

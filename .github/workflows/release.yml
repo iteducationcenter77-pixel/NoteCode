@@ -28,16 +28,20 @@ jobs:
       - name: Build web
         run: npm run build
 
-      - name: Package Windows installer
-        run: npm run package:win
+      - name: Package Windows installer (full, with bundled tools)
+        run: npm run package:win:full
 
       - name: Verify installer exists
         run: |
-          $file = Get-ChildItem -Path "dist-electron" -Filter "NoteCode-*-Setup.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
-          if (-not $file) {
-            Write-Error "Installer not found: dist-electron/NoteCode-*-Setup.exe"
+          $files = @(Get-ChildItem -Path "dist-electron" -Filter "NoteCode-*-Setup.exe" -ErrorAction SilentlyContinue)
+          if (-not $files -or $files.Count -eq 0) {
+            $files = @(Get-ChildItem -Path "dist-electron" -Filter "NoteCode-Setup.exe" -ErrorAction SilentlyContinue)
+          }
+          if (-not $files -or $files.Count -eq 0) {
+            Write-Error "Installer not found: dist-electron/NoteCode-*-Setup.exe or NoteCode-Setup.exe"
           } else {
-            Write-Host "Found installer: $($file.FullName)"
+            Write-Host "Found installer(s):"
+            $files | ForEach-Object { Write-Host $_.FullName }
           }
 
       - name: Create GitHub Release and upload asset
@@ -46,6 +50,7 @@ jobs:
         with:
           files: |
             dist-electron/NoteCode-*-Setup.exe
+            dist-electron/NoteCode-Setup.exe
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

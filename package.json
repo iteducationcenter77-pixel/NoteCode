@@ -13,7 +13,9 @@
     "preview:5500": "vite preview --port 5500 --strictPort",
     "electron:dev": "node scripts/electron-dev.cjs",
     "electron:build": "vite build && electron-builder",
-    "package:win": "vite build && electron-builder --win --x64"
+    "package:win": "vite build && electron-builder --win --x64",
+    "tools:fetch": "node scripts/fetch-tools.cjs",
+    "package:win:full": "npm run tools:fetch && vite build && electron-builder --win --x64"
   },
   "author": "",
   "license": "MIT",
@@ -55,6 +57,13 @@
     "files": [
       "dist/**",
       "electron/**"
+    ],
+    "extraResources": [
+      {
+        "from": "tools",
+        "to": "tools",
+        "filter": ["**/*"]
+      }
     ],
     "win": {
       "artifactName": "NoteCode-${version}-Setup.exe",

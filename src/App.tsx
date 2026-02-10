@@ -479,6 +479,23 @@ function App() {
     const api = (window as any).api
     if (api && typeof api.startRun === 'function') {
       try {
+        // Preflight on desktop: ensure toolchains are available, inform user if first-time install may take a while
+        if (language === 'java' || language === 'c' || language === 'cpp') {
+          appendLog('log', 'Checking/Installing compilers... This may take several minutes on first run (downloads required).')
+          try {
+            const tools = await api.checkTools()
+            if (language === 'java' && !tools?.javac?.present) {
+              appendLog('warn', 'Java compiler (javac) missing after installation attempt. Please ensure internet is available and reopen the app.')
+              return
+            }
+            if ((language === 'c' || language === 'cpp') && !tools?.gcc?.present && !tools?.gpp?.present) {
+              appendLog('warn', 'GCC/G++ missing after installation attempt. Please ensure internet is available and reopen the app.')
+              return
+            }
+          } catch (e: any) {
+            appendLog('warn', 'Compiler check failed: ' + String(e?.message || e))
+          }
+        }
         // Start interactive run and subscribe to output
         const res = await api.startRun({ language, source: doc })
         if (res?.supported === false) {
